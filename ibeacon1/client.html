@@ -1,0 +1,95 @@
+<html>
+<head>
+<meta charset="utf-8" />
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+</head>
+<body>
+<input id="message" type="text"><button id="send">send</button>
+<div id="output"></div>
+<p>
+<select name="item" id="item">
+<option value="mc01">抹茶チョコ</option>
+<option value="mc02">バナナチップ</option>
+<option value="mc03">ポテトチップス</option>
+<option value="mc04">チョコレート</option>
+</select>
+</p>
+<script>
+(function() {
+  var ws = new WebSocket("ws://localhost:8888");
+  var output = document.getElementById('output');
+  var send = document.getElementById('send');
+
+  function logStr(eventStr, msg) {
+    return '<div>' + eventStr + ':' + msg + '</div>';
+  }
+
+  send.addEventListener('click', function() {
+    var msg = document.getElementById('message').value;
+    ws.send(msg);
+    output.innerHTML += logStr('send', msg);
+//
+    // var itemId=document.getElementById("item").value;
+    // getZaiko("A",itemId,resp);
+
+  });
+//プロダウンが切り替わった時にonchengeイベントとbeaconが変わった時にプルダウンがなにだったか？
+  ws.onmessage = function(e) {
+    //ここはibeaconが呼ばれた時に動くイベント
+     console.log(e.data);
+    // output.innerHTML += logStr('recieved', e.data);
+    // output.innerHTML += logStr('recieved',JSON.parse(e.data))
+    // ここが出力に当たるそうさ。やってみる。
+    //次にフィルターをかける
+    var itemId=document.getElementById("item").value;
+    ///beaconが変わった時にプルダウンがなにだったか？について記述しているという処理beaconが飛んできた時のえらばれたもの 
+     if(JSON.parse(e.data).major== 26177&&JSON.parse(e.data).minor==48667 &&JSON.parse(e.data).accuracy<0.8){
+          //output.innerHTML += logStr('recieved', e.data);
+          // console.log(e.data);
+          output.innerHTML += logStr('recieved', "Aのお店が近いです。");
+          // getZaiko("A","mc01",resp);
+          getZaiko("A",itemId,resp);
+     }else if(JSON.parse(e.data).major== 3322&&JSON.parse(e.data).minor==50316 &&JSON.parse(e.data).accuracy<0.8){
+              // console.log(e.data);
+              output.innerHTML += logStr('recieved', "Bのお店が近いです");
+              getZaiko("B",itemId,resp);
+     }
+
+  };
+
+  ws.onclose = function (e) {
+    output.innerHTML += logStr('disconnect', e.code + ' - ' + e.type);
+  };
+
+  function getZaiko(mise,syohin,reFunc){
+    $.ajax({
+      type: "GET",//getのhttpリクエスト
+      url: "/db/",
+      data: { mise: mise, syohin: syohin }
+    }).done(function( msg ) {
+      console.log(msg);
+      reFunc.call(window,msg.zaiko);
+      //
+    });
+    // serverに問い合わせ
+    console.log(mise);
+    console.log(syohin);
+    // reFunc("zaiko");
+  //   if(mise=="A" && syohin=="mc01"){
+  //     //このサーバーから受け取れるデータ
+  //     reFunc.call(window,3);
+  //     //
+  //   }else{
+  //     reFunc.call(window,0);
+  //   }
+   }
+
+  function resp(num){
+    console.log(num);
+  }
+
+}());
+
+</script>
+</body>
+</html>
